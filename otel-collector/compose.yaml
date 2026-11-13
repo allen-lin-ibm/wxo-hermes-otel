@@ -1,0 +1,42 @@
+# otel-collector/compose.yaml
+#
+# Usage:
+#   cd <project-root>
+#   set -a && source .env && set +a   # load .env into host shell (do NOT export API_KEY to container)
+#   podman compose -f otel-collector/compose.yaml up -d
+#
+# Stop:
+#   podman compose -f otel-collector/compose.yaml down
+#
+# Design note – why NOT `env_file: ../.env`:
+#   .env also contains API_KEY and TOKEN_URL which the Collector does not need
+#   and must not receive.  podman-compose's env_file injects every variable, so
+#   we instead reference only the four required variables from the host shell
+#   environment via the `environment:` map (VAR: syntax without a value means
+#   "inherit from host if present").
+
+services:
+  otelcol:
+    image: docker.io/otel/opentelemetry-collector-contrib:0.164.0
+    container_name: wxo-otelcol
+    restart: unless-stopped
+
+    # Inject only the four variables the Collector config needs.
+    # Values come from the host shell (loaded via `source .env` before compose).
+    environment:
+      TENANT_ID:
+      AGENT_ID:
+      ENVIRONMENT_NAME:
+      OTEL_EXPORT_URL:
+
+    volumes:
+      # Collector config – read-only
+      - ./config.yaml:/etc/otelcol-contrib/config.yaml:ro,z
+      # Token directory – read-only; bearertokenauth reads /etc/otelcol/token/token per request
+      - ./token:/etc/otelcol/token:ro,z
+
+    ports:
+      # Expose OTLP/HTTP only on loopback – Hermes connects from localhost
+      - "127.0.0.1:4318:4318"
+
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]

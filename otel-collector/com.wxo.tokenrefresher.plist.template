@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Label uniquely identifies the job -->
+    <key>Label</key>
+    <string>com.wxo.tokenrefresher</string>
+
+    <!-- Program arguments using project uv environment -->
+    <key>ProgramArguments</key>
+    <array>
+        <!-- Replace /Users/YOUR_USER/.local/bin/uv with actual path to uv (`which uv`) -->
+        <string>/Users/YOUR_USER/.local/bin/uv</string>
+        <string>run</string>
+        <string>python</string>
+        <string>otel-collector/refresh_token.py</string>
+    </array>
+
+    <!-- Working directory: Replace with absolute path to this project workspace -->
+    <key>WorkingDirectory</key>
+    <string>/PATH/TO/YOUR/wxo-enablement</string>
+
+    <!-- Run automatically on system boot / user login -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Keep running and automatically restart if killed -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Standard out and error logs -->
+    <key>StandardOutPath</key>
+    <string>/PATH/TO/YOUR/wxo-enablement/otel-collector/token_refresher.log</string>
+    <key>StandardErrorPath</key>
+    <string>/PATH/TO/YOUR/wxo-enablement/otel-collector/token_refresher.log</string>
+
+    <!-- Environment variables if needed -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin</string>
+    </dict>
+</dict>
+</plist>

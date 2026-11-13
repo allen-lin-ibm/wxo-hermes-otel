@@ -1,0 +1,70 @@
+# OTel Collector config for wxO Agent Analytics
+# Image: docker.io/otel/opentelemetry-collector-contrib:0.164.0
+#
+# Required env vars (injected by compose.yaml, sourced from .env):
+#   TENANT_ID           – wxO tenant UUID
+#   AGENT_ID            – wxO agent UUID
+#   ENVIRONMENT_NAME    – e.g. "production" or "draft"
+#   OTEL_EXPORT_URL     – https://.../v1/orchestrate/inject/traces
+#
+# Token file: mounted at /etc/otelcol/token/token (read on every request)
+
+extensions:
+  bearertokenauth:
+    # filename: read on every outgoing request; no restart needed after token update
+    filename: /etc/otelcol/token/token
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: "0.0.0.0:4318"
+
+processors:
+  # Inject tenant.id and deployment.environment at resource level
+  resource:
+    attributes:
+      - key: tenant.id
+        value: "${env:TENANT_ID}"
+        action: upsert
+      - key: deployment.environment
+        value: "${env:ENVIRONMENT_NAME}"
+        action: upsert
+
+  # Inject agent.id and tenant.id at every span level
+  attributes:
+    actions:
+      - key: agent.id
+        value: "${env:AGENT_ID}"
+        action: upsert
+      - key: tenant.id
+        value: "${env:TENANT_ID}"
+        action: upsert
+
+  batch:
+    send_batch_size: 512
+    timeout: 5s
+
+exporters:
+  otlphttp/wxo:
+    traces_endpoint: "${env:OTEL_EXPORT_URL}"
+    auth:
+      authenticator: bearertokenauth
+    # Do NOT log headers (would expose Authorization token)
+    headers: {}
+
+  # Debug exporter: log span names to stderr for smoke-testing
+  # Remove or set verbosity to "basic" in production
+  debug:
+    verbosity: detailed
+    sampling_initial: 5
+    sampling_thereafter: 200
+
+service:
+  extensions: [bearertokenauth]
+
+  pipelines:
+    traces:
+      receivers:  [otlp]
+      processors: [resource, attributes, batch]
+      exporters:  [otlphttp/wxo, debug]
